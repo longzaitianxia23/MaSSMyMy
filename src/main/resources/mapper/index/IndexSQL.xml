@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>  
+<!DOCTYPE mapper    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace的值就是dao接口的完整路劲，就这个demo而言namespace 就是userDao.java的完整路劲 -->
+<mapper namespace="com.ks.index.dao.IndexDao">
+	<!-- 这里的id就是接口中方法的名称 -->
+	<insert id="insertUser" parameterType="com.ks.index.model.UserVO">
+			insert into BT_User(id,
+				user_Account_Number,
+				user_Password,
+				sex,
+				user_Birth,
+				mobilePhone_Num,
+				email,
+				create_Date,
+				last_Update_Date
+				) values(#{id},
+					#{userAccountNumber},
+					#{userPassword},
+					#{sex},
+					#{userBirth},
+					#{mobilePhoneNum},
+					#{email},
+					#{createDate},
+					#{lastUpdateDate})
+	</insert>
+	
+	<select id="queryUser" parameterType="com.ks.index.model.UserVO" resultType="com.ks.index.model.UserVO">
+		select 
+			id as id,
+			user_Account_Number as userAccountNumber,
+			user_Password as userPassword
+		from BT_User
+	</select>
+	
+	
+	<select id="queryUserByAccount" parameterType="com.ks.index.model.UserVO" resultType="com.ks.index.model.UserVO">
+		select 
+			id id,
+			user_Account_Number userAccountNumber,
+			user_Password userPassword,
+			sex sex,
+			user_Birth userBirth,
+			mobilePhone_Num mobilePhoneNum,
+			email email,
+			create_Date createDate,
+			last_Update_Date lastUpdateDate
+		from BT_User
+		where user_Account_Number = #{userAccountNumber}
+	</select>
+</mapper>

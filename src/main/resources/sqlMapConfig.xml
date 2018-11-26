@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration  
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"  
+"http://mybatis.org/dtd/mybatis-3-config.dtd">  
+<configuration>
+	<!-- 别名的定义 -->
+	<typeAliases>
+	    <!-- 针对单个别名的定义。type：类型的路径； alias：别名  -->    
+	    <typeAlias type="com.ks.index.model.UserVO" alias="UserVO"/>
+	    <typeAlias type="com.ks.userhomepage.model.UserHomePageVO" alias="UserHomePageVO"/>
+	</typeAliases>
+	<mappers>
+	    <mapper resource="mapper/index/IndexSQL.xml" />
+	    <mapper resource="mapper/userhomepage/UserHomePageMapper.xml" />
+	    <mapper resource="mapper/jurisdiction/JurisdictionMapper.xml" />
+	    <mapper resource="mapper/xubase/BaseSQL.xml" />
+	    <!-- <mapper resource="classpath:mapper/**/*.xml" /> -->
+	</mappers>
+</configuration>

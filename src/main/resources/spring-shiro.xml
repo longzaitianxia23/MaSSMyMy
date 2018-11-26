@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/util  
+        http://www.springframework.org/schema/util/spring-util.xsd
+        http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans.xsd"
+	default-lazy-init="true">
+
+	<description>Shiro Configuration</description>
+	
+	<!-- 缓存管理器 -->  
+    <bean id="cacheManager" class="com.ks.shiro.SpringCacheManagerWrapper">  
+        <property name="cacheManager" ref="springCacheManager" />  
+    </bean>
+    
+    <!-- Realm实现 -->  
+    <bean id="shiroRealm" class="com.ks.shiro.ShiroRealm">  
+        <!-- <property name="credentialsMatcher" ref="credentialsMatcher" /> -->  
+        <!--<property name="cachingEnabled" value="true" />   -->  
+        <!-- 该项目的登陆认证由登陆操作时自行认证，所以也就不需要使用SHIRO的登陆认证缓存，只使用权限认证缓存,且会重写自带的缓存机制getAuthorizationInfo
+        <property name="authenticationCachingEnabled" value="true"/>
+        <property name="authenticationCacheName" value="authenticationCache"/> -->  
+        <property name="authorizationCachingEnabled" value="true"/>
+        <property name="authorizationCacheName" value="authorizationCache"/>
+    </bean>
+    <!-- 自定义拦截器 -->
+    <bean id="myShiroFilter" class="com.ks.shiro.ShiroFilter"></bean>
+    
+    <!-- 会话ID生成器 -->  
+    <bean id="sessionIdGenerator"  
+        class="org.apache.shiro.session.mgt.eis.JavaUuidSessionIdGenerator" />
+    
+    <!-- 会话Cookie模板 -->  
+    <bean id="sessionIdCookie" class="org.apache.shiro.web.servlet.SimpleCookie">  
+        <constructor-arg value="sid" />  
+        <property name="httpOnly" value="true" />  
+        <property name="maxAge" value="-1" />  
+    </bean>
+    
+    <bean id="rememberMeCookie" class="org.apache.shiro.web.servlet.SimpleCookie">  
+        <constructor-arg value="rememberMe" />  
+        <property name="httpOnly" value="true" />  
+        <property name="maxAge" value="2592000" /><!-- 30天 -->  
+    </bean> 
+    
+    <!-- rememberMe管理器 -->  
+    <bean id="rememberMeManager" class="org.apache.shiro.web.mgt.CookieRememberMeManager">  
+        <!-- rememberMe cookie加密的密钥 建议每个项目都不一样 默认AES算法 密钥长度（128 256 512 位） -->  
+        <property name="cipherKey"  
+            value="#{T(org.apache.shiro.codec.Base64).decode('4AvVhmFLUs0KTA3Kprsdag==')}" />  
+        <property name="cookie" ref="rememberMeCookie" />  
+    </bean>
+    
+	<!-- 会话DAO -->  
+    <bean id="sessionDAO"  
+        class="org.apache.shiro.session.mgt.eis.EnterpriseCacheSessionDAO">  
+        <property name="activeSessionsCacheName" value="shiro-activeSessionCache" />  
+        <property name="sessionIdGenerator" ref="sessionIdGenerator" />  
+    </bean>
+    
+    <!-- 会话管理器 -->  
+    <bean id="sessionManager"  
+        class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">  
+        <property name="globalSessionTimeout" value="1800000" />  
+        <property name="deleteInvalidSessions" value="true" />  
+        <property name="sessionDAO" ref="customShiroSessionDAO" /><!-- 这里指定shiro的sessionManager使用我们指定的存储方式来存放session信息 -->  
+        <property name="sessionIdCookieEnabled" value="true" />  
+        <property name="sessionIdCookie" ref="sessionIdCookie" />  
+    </bean>
+    
+    <bean id="customShiroSessionDAO" class="com.ks.shiro.dao.CustomShiroSessionDao">  
+        <property name="shiroSessionRepository" ref="jedisShiroSessionRepository" /><!-- 自己定义的sessiondao -->  
+    </bean>  
+  	
+  	<!-- 配置redis -->
+	<bean id="jedisShiroSessionRepository"  
+        class="com.ks.shiro.dao.JedisShiroSessionRepository">  
+        <property name="redisManager" ref="redisManager"></property>     
+    </bean>
+    <!-- 注册上面实现的redisManager到spring中   -->
+    <bean id="redisManager" class="com.ks.top.redis.RedisManager"></bean>
+  
+    <bean id="jedisShiroCacheManager" class="com.ks.shiro.JedisShiroCacheManager">  
+        <property name="redisManager" ref="redisManager"></property>  
+    </bean>
+	<bean id="customShiroCacheManager" class="com.ks.shiro.CustomShiroCacheManager">  
+        <property name="shrioCacheManager" ref="jedisShiroCacheManager"></property>  
+    </bean>
+    <!-- 安全管理器 -->  
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">  
+        <property name="realm" ref="shiroRealm" />
+        <property name="sessionManager" ref="sessionManager" />  
+        <property name="cacheManager" ref="customShiroCacheManager" />  
+        <property name="rememberMeManager" ref="rememberMeManager" />  
+    </bean>
+    
+    <!-- 相当于调用SecurityUtils.setSecurityManager(securityManager) -->  
+    <bean  
+        class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">  
+        <property name="staticMethod"  
+            value="org.apache.shiro.SecurityUtils.setSecurityManager" />  
+        <property name="arguments" ref="securityManager" />  
+    </bean>
+    
+    <!-- <bean id="sysUserFilter" class="org.calonlan.security.web.shiro.filter.SysUserFilter" /> -->  
+  
+    <!-- Shiro的Web过滤器 -->  
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">  
+        <property name="securityManager" ref="securityManager" />  
+        <!-- 逻辑上正确，不起作用 -->  
+        <!-- <property name="loginUrl" value="/login" />  
+        <property name="successUrl" value="/admin/index" /> -->
+        <property name="unauthorizedUrl" value="/error.html" />
+        <property name="filters">
+            <util:map>  
+            	<!-- 这里是当URL符合制定的拦截规则时。跳转的判断类
+                <entry key="authc" value-ref="formAuthenticationFilter" /> -->  
+                <entry key="sysUser" value-ref="myShiroFilter" />  
+            </util:map>  
+        </property>  
+        <property name="filterChainDefinitions">  
+            <value>  
+            	/top/**=anon
+            	/imp/**=anon
+            	/index/userLogin.do=anon
+                /=anon
+                /error.html=anon 
+                /**=anon
+                <!-- /member/**=sysUser,roles["edit"]  
+                /edit=sysUser,roles["edit"],perms["delete1"]  
+                /getJson/**=anon  
+                /** = sysUser --> 
+            </value>  
+        </property>  
+    </bean> 
+
+	<!-- 保证实现了Shiro内部lifecycle函数的bean执行 -->
+	<bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor" />
+
+</beans>
